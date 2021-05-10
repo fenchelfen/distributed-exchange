@@ -9,6 +9,12 @@ contract InnoDEX is Ownable {
 
   using SafeMath for uint256;
 
+  Token token;
+
+  constructor(IERC20 tokenContract) {
+    token.tokenContract = tokenContract;
+  }
+
   struct Offer {
     address account;
     uint256 amount;
@@ -22,6 +28,16 @@ contract InnoDEX is Ownable {
     IERC20 tokenContract;    
     OrderBook bidsOrderBook;
     OrderBook asksOrderBook;
+  }
+
+  function getTokenContract() public view returns (IERC20) {
+    return token.tokenContract;
+  }
+
+  function placeBidLimitOrder() public {
+  }
+
+  function placeAskLimitOrder() public {
   }
 }
 
