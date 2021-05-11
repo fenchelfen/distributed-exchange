@@ -44,17 +44,21 @@ contract InnoDEX is Ownable, Queue {
   using SafeMath for uint256;
 
   Token token;
+  OrderBook book;
 
   mapping(address => uint256) public tokenBalances;
 
   constructor(ERC20 tokenContract) {
     token.tokenContract = tokenContract;
+    // token.currentSellPrice = tokenContract.initialPrice;
   }
 
   struct Order {
     address account;
     uint256 amount;
   }
+
+  enum OrderType { Bid, Ask }
 
   struct OrderBook {
     OrderBookNode root;
@@ -66,15 +70,15 @@ contract InnoDEX is Ownable, Queue {
     OrderBookNode[] right;
   }
 
-
-  uint constant bucketStart = 100;
-  uint constant bucketEnd = 999;
+  uint public constant bucketStart = 100;
+  uint public constant bucketEnd = 999;
+  mapping(uint256 => uint256) buckets;
 
   struct Token {
     ERC20 tokenContract;    
     OrderBook bidsOrderBook;
     OrderBook asksOrderBook;
-    mapping(uint256 => Order) buckets;
+    uint256 currentSellPrice;
   }
 
   function getTokenContract() public view returns (ERC20) {
@@ -91,7 +95,36 @@ contract InnoDEX is Ownable, Queue {
   
   /* START OrderBookAPI */
 
-  function insertOrder() internal {
+  function sayHello() public view returns (string memory) {
+    return "Hi There";
+  }
+
+  function isSameBucket(uint256 a, uint256 b) public returns (bool, uint256, uint256) {
+    uint256 max;
+    uint256 min;
+
+    // if (a == b) {
+    //   return true;
+    // }
+
+    if (a > b) { max = a; min = b; }
+    else { max = b; min = a; }
+
+    // precision is up to 4 decimals
+    uint256 t = (max - min) / 10000;
+
+    // if integer part is 0, then two amounts are close enough to be in the same bucket
+    return (t == 0, max - min, max - min / 10000);
+  }
+
+  function insertOrder(uint256 amount, OrderType orderType) public view returns (string memory) {
+    Order memory order;
+    order.account = msg.sender;
+    order.amount = amount;
+    
+    OrderBookNode memory currentNode = book.root;
+    while (true) {
+    }
   }
   
   function executeOrder() internal {
@@ -116,20 +149,16 @@ contract InnoDEX is Ownable, Queue {
 
   /* START view functions */
 
-  function getBucketsCount() public view returns (uint) {
-    return token.bucketEnd - token.BucketStart + 1;
-  }
-
-  function getBucketAt(uint256 idx) {
-    return token.buckets[idx];
+  function getBucketAt(uint256 idx) public returns (uint256) {
+    return buckets[idx];
   } 
 
-  function getBid(uint256 bucket) public view returns (Order) {
+  function getBid(uint256 bucket) public view returns (uint256) {
     // Traverse the tree and find out how many orders are in this bucket 
     return 77;
   }
 
-  function getAsk(uint256 bucket) public view (Order) {
+  function getAsk(uint256 bucket) public view returns (uint256) {
     return 128;
   }
 
