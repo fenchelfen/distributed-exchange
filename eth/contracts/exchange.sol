@@ -58,7 +58,6 @@ contract InnoDEX is Ownable, Queue {
 
   struct OrderBook {
     OrderBookNode root;
-    
   }
 
   struct OrderBookNode {
@@ -67,10 +66,15 @@ contract InnoDEX is Ownable, Queue {
     OrderBookNode[] right;
   }
 
+
+  uint constant bucketStart = 100;
+  uint constant bucketEnd = 999;
+
   struct Token {
     ERC20 tokenContract;    
     OrderBook bidsOrderBook;
     OrderBook asksOrderBook;
+    mapping(uint256 => Order) buckets;
   }
 
   function getTokenContract() public view returns (ERC20) {
@@ -112,10 +116,21 @@ contract InnoDEX is Ownable, Queue {
 
   /* START view functions */
 
-  function getBids() public view {
+  function getBucketsCount() public view returns (uint) {
+    return token.bucketEnd - token.BucketStart + 1;
   }
 
-  function getAsks() public view {
+  function getBucketAt(uint256 idx) {
+    return token.buckets[idx];
+  } 
+
+  function getBid(uint256 bucket) public view returns (Order) {
+    // Traverse the tree and find out how many orders are in this bucket 
+    return 77;
+  }
+
+  function getAsk(uint256 bucket) public view (Order) {
+    return 128;
   }
 
   /* END   view functions */
