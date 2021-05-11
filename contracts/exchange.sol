@@ -5,7 +5,41 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-contract InnoDEX is Ownable {
+contract Queue
+{
+    struct _Queue {
+        uint[] data;
+        uint front;
+        uint back;
+    }
+    /// @dev the number of elements stored in the queue.
+    function length(_Queue storage q) view internal returns (uint) {
+        return q.back - q.front;
+    }
+    /// @dev the number of elements this queue can hold
+    function capacity(_Queue storage q) view internal returns (uint) {
+        return q.data.length - 1;
+    }
+    /// @dev push a new element to the back of the queue
+    function push(_Queue storage q, uint data) internal
+    {
+        if ((q.back + 1) % q.data.length == q.front)
+            return; // throw;
+        q.data[q.back] = data;
+        q.back = (q.back + 1) % q.data.length;
+    }
+    /// @dev remove and return the element at the front of the queue
+    function pop(_Queue storage q) internal returns (uint r)
+    {
+        if (q.back == q.front)
+            revert(); // throw;
+        r = q.data[q.front];
+        delete q.data[q.front];
+        q.front = (q.front + 1) % q.data.length;
+    }
+}
+
+contract InnoDEX is Ownable, Queue {
 
   using SafeMath for uint256;
 
@@ -17,14 +51,19 @@ contract InnoDEX is Ownable {
     token.tokenContract = tokenContract;
   }
 
-  struct Offer {
+  struct Order {
     address account;
     uint256 amount;
   }
 
   struct OrderBook {
-    mapping(uint => Offer) chart;
-    // uint 
+    OrderBookNode root;
+  }
+
+  struct OrderBookNode {
+    Queue orders;
+    OrderBookNode[] left;
+    OrderBookNode[] right;
   }
 
   struct Token {
@@ -43,8 +82,23 @@ contract InnoDEX is Ownable {
     tokenBalances[msg.sender] = tokenBalances[msg.sender].add(amount);
 
     emit TokenDeposited(msg.sender, block.timestamp, token.tokenContract.symbol(), amount);
-    return msg.value;
   }
+  
+  /* START OrderBookAPI */
+
+  function insertOrder() internal {
+  }
+  
+  function executeOrder() internal {
+  }
+
+  function cancelOrder() internal {
+  }
+
+  function getBestBid() internal {
+  }
+
+  /* END   OrderBookAPI */
 
   function placeBidLimitOrder() public {
   }
@@ -53,6 +107,5 @@ contract InnoDEX is Ownable {
   }
 
   event TokenDeposited(address indexed _initiator, uint _timestamp, string _tokenSymbol, uint _amount);
-
 }
 
