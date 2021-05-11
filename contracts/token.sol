@@ -22,6 +22,6 @@ contract HELLO {
 
 contract SWOT is ERC20 {
   constructor (string memory name, string memory symbol) ERC20(name, symbol) {
-    _mint(0x0000000000000000000000000000000000000001, 1234);
+    _mint(msg.sender, 9999);
   }
 }

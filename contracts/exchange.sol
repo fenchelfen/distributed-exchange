@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract InnoDEX is Ownable {
 
@@ -11,7 +11,9 @@ contract InnoDEX is Ownable {
 
   Token token;
 
-  constructor(IERC20 tokenContract) {
+  mapping(address => uint256) public tokenBalances;
+
+  constructor(ERC20 tokenContract) {
     token.tokenContract = tokenContract;
   }
 
@@ -22,16 +24,26 @@ contract InnoDEX is Ownable {
 
   struct OrderBook {
     mapping(uint => Offer) chart;
+    // uint 
   }
 
   struct Token {
-    IERC20 tokenContract;    
+    ERC20 tokenContract;    
     OrderBook bidsOrderBook;
     OrderBook asksOrderBook;
   }
 
-  function getTokenContract() public view returns (IERC20) {
+  function getTokenContract() public view returns (ERC20) {
     return token.tokenContract;
+  }
+
+  function depositEther(uint amount) public payable returns (uint256) {
+    require(token.tokenContract.transferFrom(msg.sender, address(this), amount), 'Failed to transfer tokens to SCA');
+
+    tokenBalances[msg.sender] = tokenBalances[msg.sender].add(amount);
+
+    emit TokenDeposited(msg.sender, block.timestamp, token.tokenContract.symbol(), amount);
+    return msg.value;
   }
 
   function placeBidLimitOrder() public {
@@ -39,5 +51,8 @@ contract InnoDEX is Ownable {
 
   function placeAskLimitOrder() public {
   }
+
+  event TokenDeposited(address indexed _initiator, uint _timestamp, string _tokenSymbol, uint _amount);
+
 }
 
