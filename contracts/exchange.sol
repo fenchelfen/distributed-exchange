@@ -58,6 +58,7 @@ contract InnoDEX is Ownable, Queue {
 
   struct OrderBook {
     OrderBookNode root;
+    
   }
 
   struct OrderBookNode {
@@ -105,6 +106,19 @@ contract InnoDEX is Ownable, Queue {
 
   function placeAskLimitOrder() public {
   }
+
+  function cancelLimitOrder() public {
+  }
+
+  /* START view functions */
+
+  function getBids() public view {
+  }
+
+  function getAsks() public view {
+  }
+
+  /* END   view functions */
 
   event TokenDeposited(address indexed _initiator, uint _timestamp, string _tokenSymbol, uint _amount);
 }
