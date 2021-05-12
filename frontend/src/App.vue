@@ -1,16 +1,42 @@
 <template>
   <div id="app">
-    <Trading></Trading>
+    <Chart :points="this.stocks"></Chart>
   </div>
 </template>
 
 <script>
-import Trading from './components/Trading.vue'
+import Chart from './components/Chart.vue'
 
 export default {
   name: 'App',
   components: {
-    Trading
+    Chart
+  },
+  data() {
+    return {
+      "stocks": [
+        {
+          price: 123,
+          amount: 30,
+          sell: true
+        },
+        {
+          price: 1,
+          amount: 300,
+          sell: true
+        }
+        , {
+          price: 59,
+          amount: 35,
+          sell: false
+        }
+        , {
+          price: 1000,
+          amount: 90,
+          sell: false
+        }
+      ]
+    }
   }
 }
 </script>
