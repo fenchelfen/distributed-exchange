@@ -27,19 +27,19 @@ contract SwotOrderBook is SwotQueue
   function getNode(OrderBook storage book, uint256 id) internal returns (OrderBookNode storage) {
     return book.nodes[id];
   }
-  function addRight(OrderBook storage book, OrderBookNode storage node, OrderBookNode storage newNode) internal {
+  function addRight(OrderBook storage book, OrderBookNode storage node) internal {
     book.maxIndex = book.maxIndex + 1;
+
     node.right = book.maxIndex;
-    newNode.idx = book.maxIndex;
-    newNode.parent = node.idx;
-    book.nodes[node.right] = newNode;
+    book.nodes[node.right].idx = book.maxIndex;
+    book.nodes[node.right].parent = node.idx;
   }
-  function addLeft(OrderBook storage book, OrderBookNode storage node, OrderBookNode storage newNode) internal {
+  function addLeft(OrderBook storage book, OrderBookNode storage node) internal {
     book.maxIndex = book.maxIndex + 1;
+
     node.left = book.maxIndex;
-    newNode.idx = book.maxIndex;
-    newNode.parent = node.idx;
-    book.nodes[node.left] = newNode;
+    book.nodes[node.left].idx = book.maxIndex;
+    book.nodes[node.left].parent = node.idx;
   }
 }
 

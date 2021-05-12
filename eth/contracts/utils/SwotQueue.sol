@@ -5,8 +5,7 @@ contract SwotQueue
 {
     struct Queue {
         bytes32[] data;
-        uint front;
-        uint back;
+        uint cursorPosition;
         mapping(bytes32 => Order) hashToOrder;
     }
 
@@ -19,48 +18,46 @@ contract SwotQueue
     {
       return keccak256(abi.encode(order.account, order.amount));
     }
-    /// @dev the number of elements stored in the queue.
-    function length(Queue storage q) internal returns (uint) {
-        return q.back - q.front;
-    }
-    /// @dev the number of elements this queue can hold
-    function capacity(Queue storage q) internal returns (uint) {
-        return q.data.length - 1;
-    }
-    /// @dev push a new element to the back of the queue
-    function push(Queue storage q, bytes32 data) internal
+    function queueDepth(Queue storage q) 
+        internal
+        returns(uint)
     {
-        if ((q.back + 1) % q.data.length == q.front)
-            return; // throw;
-        q.data[q.back] = data;
-        q.back = (q.back + 1) % q.data.length;
+        return q.data.length - q.cursorPosition;
     }
-    /// @dev remove and return the element at the front of the queue
-    function pop(Queue storage q) internal returns (bytes32 r)
+
+    function push(Queue storage q, bytes32 requestData) 
+        internal
     {
-        if (q.back == q.front)
-            revert(); // throw;
-        r = q.data[q.front];
-        delete q.data[q.front];
-        q.front = (q.front + 1) % q.data.length;
+        if(q.data.length + 1 < q.data.length) revert(); // exceeded 2^256 push requests
+        q.data.push(requestData);
     }
-    /// @dev pick a value at the front of the queue 
+
+    function pop(Queue storage q) 
+        internal
+        returns(bytes32)
+    {
+        if(q.data.length==0) revert();
+        if(q.data.length - 1 < q.cursorPosition) revert();
+        q.cursorPosition += 1;
+        return q.data[q.cursorPosition -1];
+    }
     function pick(Queue storage q) internal returns (bytes32 r)
     {
-        if (q.back == q.front)
-            revert(); // throw;
-        return q.data[q.front];
+        if(q.data.length==0) revert();
+        if(q.data.length - 1 < q.cursorPosition) revert();
+        return q.data[q.cursorPosition];
     }
     function pushToQueue(Queue storage q, Order memory order) internal {
         bytes32 orderId = getOrderId(order);
-        q.hashToOrder[orderId] = order;
+        q.hashToOrder[orderId].amount = order.amount;
+        q.hashToOrder[orderId].account = order.account;
         push(q, orderId);
     }
-    function pickFromQueue(Queue storage q) internal returns (Order memory) {
+    function pickFromQueue(Queue storage q) internal returns (Order storage) {
         bytes32 orderId = pick(q);
         return q.hashToOrder[orderId];
     }
-    function popFromQueue(Queue storage q) internal returns (Order memory order) {
+    function popFromQueue(Queue storage q) internal returns (Order storage order) {
         bytes32 orderId = pop(q);
         order = q.hashToOrder[orderId];
         q.hashToOrder[orderId] = Order(address(0), 0);

@@ -18,8 +18,14 @@ contract InnoDEX is Ownable, SwotQueue, SwotOrderBook {
   constructor(ERC20 tokenContract) {
     token.tokenContract = tokenContract;
 
-    Order memory firstOrder = Order(msg.sender, 1337);
+    Order memory firstOrder = Order(msg.sender, 1);
+    Order memory second = Order(msg.sender, 2);
+    Order memory third = Order(msg.sender, 3);
+    Order memory fourth = Order(msg.sender, 4);
     pushToQueue(token.bidsOrderBook.root.orders, firstOrder);
+    pushToQueue(token.bidsOrderBook.root.orders, second);
+    pushToQueue(token.bidsOrderBook.root.orders, third);
+    pushToQueue(token.bidsOrderBook.root.orders, fourth);
   }
 
   enum OrderType { Bid, Ask }
