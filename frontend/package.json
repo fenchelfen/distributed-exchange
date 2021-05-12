@@ -9,6 +9,8 @@
   },
   "dependencies": {
     "core-js": "^3.6.5",
+    "trading-vue-js": "^1.0.2",
+    "tvjs-overlays": "^0.4.0",
     "vue": "^2.6.11"
   },
   "devDependencies": {
@@ -21,7 +23,7 @@
     "vue-template-compiler": "^2.6.11"
   },
   "eslintConfig": {
-    "root": true,
+    "root": false,
     "env": {
       "node": true
     },
