@@ -12,7 +12,9 @@
     "trading-vue-js": "^1.0.2",
     "tvjs-overlays": "^0.4.0",
     "vue": "^2.6.11",
-    "vue-bar-graph": "^1.2.2"
+    "vue-bar-graph": "^1.2.2",
+    "vue-web3": "^2.1.0",
+    "web3": "^3.0.0-rc.4"
   },
   "devDependencies": {
     "@vue/cli-plugin-babel": "^4.5.0",

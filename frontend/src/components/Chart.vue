@@ -46,9 +46,9 @@ export default {
       const el = points[key]
       // console.log(el)
       if (el.sell) {
-        data_1.push({label: el.price, value: el.amount})
+        data_1.push({label: el['price'], value: el['amount']})
       } else {
-        data_2.push({label: el.price, value: el.amount})
+        data_2.push({label: el['price'], value: el['amount']})
       }
     }
 
@@ -56,8 +56,8 @@ export default {
     console.log(data_2);
 
     return {
-      data_1: data_1.sort((a, b) => a.price > b.price ? 1 : -1),
-      data_2: data_2.sort((a, b) => a.price > b.price ? 1 : -1),
+      data_1: data_1.sort((a, b) => a.value > b.value ? 1 : -1),
+      data_2: data_2.sort((a, b) => a.value < b.value ? 1 : -1),
     }
   },
   created: () => {

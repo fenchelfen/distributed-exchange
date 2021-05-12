@@ -16,28 +16,30 @@ export default {
     return {
       "stocks": [
         {
-          price: 123,
+          price: 501,
           amount: 30,
           sell: true
         },
         {
-          price: 1,
+          price: 500,
           amount: 300,
           sell: true
         }
         , {
-          price: 59,
+          price: 498,
           amount: 35,
           sell: false
         }
         , {
-          price: 1000,
+          price: 490,
           amount: 90,
           sell: false
         }
       ]
     }
   }
+
+
 }
 </script>
 
