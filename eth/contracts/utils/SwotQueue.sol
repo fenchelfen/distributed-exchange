@@ -9,14 +9,17 @@ contract SwotQueue
         mapping(bytes32 => Order) hashToOrder;
     }
 
+    enum OrderType { Bid, Ask }
+
     struct Order {
       address account;
       uint256 amount;
+      OrderType orderType;
     }
 
-    function getOrderId(Order memory order) internal pure returns (bytes32)
+    function getOrderId(address account, uint256 amount) internal pure returns (bytes32)
     {
-      return keccak256(abi.encode(order.account, order.amount));
+      return keccak256(abi.encode(account, amount));
     }
     function queueDepth(Queue storage q) 
         internal
@@ -28,7 +31,7 @@ contract SwotQueue
     function push(Queue storage q, bytes32 requestData) 
         internal
     {
-        if(q.data.length + 1 < q.data.length) revert(); // exceeded 2^256 push requests
+        require(q.data.length + 1 >= q.data.length, 'Array boundaries are exceeded'); // exceeded 2^256 push requests
         q.data.push(requestData);
     }
 
@@ -36,21 +39,22 @@ contract SwotQueue
         internal
         returns(bytes32)
     {
-        if(q.data.length==0) revert();
-        if(q.data.length - 1 < q.cursorPosition) revert();
+        require(q.data.length!=0, 'Cannot pop an empty queue');
+        require(q.data.length - 1 >= q.cursorPosition, 'q.data.length - 1 < q.cursorPosition');
         q.cursorPosition += 1;
         return q.data[q.cursorPosition -1];
     }
     function pick(Queue storage q) internal returns (bytes32 r)
     {
-        if(q.data.length==0) revert();
-        if(q.data.length - 1 < q.cursorPosition) revert();
+        require(q.data.length!=0, 'Cannot pick an empty queue');
+        require(q.data.length - 1 >= q.cursorPosition, 'q.data.length - 1 < q.cursorPosition');
         return q.data[q.cursorPosition];
     }
-    function pushToQueue(Queue storage q, Order memory order) internal {
-        bytes32 orderId = getOrderId(order);
-        q.hashToOrder[orderId].amount = order.amount;
-        q.hashToOrder[orderId].account = order.account;
+    function pushToQueue(Queue storage q, uint256 amount, address account, OrderType orderType) internal {
+        bytes32 orderId = getOrderId(account, amount);
+        q.hashToOrder[orderId].amount = amount;
+        q.hashToOrder[orderId].account = account;
+        q.hashToOrder[orderId].orderType = orderType;
         push(q, orderId);
     }
     function pickFromQueue(Queue storage q) internal returns (Order storage) {
@@ -60,7 +64,7 @@ contract SwotQueue
     function popFromQueue(Queue storage q) internal returns (Order storage order) {
         bytes32 orderId = pop(q);
         order = q.hashToOrder[orderId];
-        q.hashToOrder[orderId] = Order(address(0), 0);
+        q.hashToOrder[orderId] = Order(address(0), 0, OrderType(0));
     }
 }
 

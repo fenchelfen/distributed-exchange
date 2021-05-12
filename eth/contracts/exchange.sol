@@ -18,17 +18,9 @@ contract InnoDEX is Ownable, SwotQueue, SwotOrderBook {
   constructor(ERC20 tokenContract) {
     token.tokenContract = tokenContract;
 
-    Order memory firstOrder = Order(msg.sender, 1);
-    Order memory second = Order(msg.sender, 2);
-    Order memory third = Order(msg.sender, 3);
-    Order memory fourth = Order(msg.sender, 4);
-    pushToQueue(token.bidsOrderBook.root.orders, firstOrder);
-    pushToQueue(token.bidsOrderBook.root.orders, second);
-    pushToQueue(token.bidsOrderBook.root.orders, third);
-    pushToQueue(token.bidsOrderBook.root.orders, fourth);
+    pushToQueue(token.bidsOrderBook.root.orders, 1337, msg.sender, OrderType.Bid);
+    pushToQueue(token.asksOrderBook.root.orders, 0, msg.sender, OrderType.Ask);
   }
-
-  enum OrderType { Bid, Ask }
 
   uint public constant bucketStart = 100;
   uint public constant bucketEnd = 999;
@@ -69,8 +61,41 @@ contract InnoDEX is Ownable, SwotQueue, SwotOrderBook {
     return (t == 0);
   }
 
+  event OrderInserted(address indexed _initiator, uint _timestamp, uint _amount);
+  event OrderCreated(address indexed _initiator, uint _amount, OrderType _orderType);
+  event OrderFound(address indexed _initiator, uint _index, uint _amount, OrderType _orderType);
+  event FlagA();
+  event FlagB();
+  event FlagC();
+  event FlagD();
+
+  function traverseTree(OrderType orderType) public {
+    OrderBook storage book;
+
+    if (orderType == OrderType.Bid) { book = token.bidsOrderBook; }
+    else { book = token.asksOrderBook; }
+
+    OrderBookNode storage currentNode = book.root;
+
+    dfs(currentNode, book);
+  }
+
+  function dfs(OrderBookNode storage currentNode, OrderBook storage book) internal {
+    while(currentNode.orders.data.length > currentNode.orders.cursorPosition) {
+      Order storage o = popFromQueue(currentNode.orders);
+      emit OrderFound(o.account, currentNode.idx, o.amount, o.orderType);
+    }
+
+    if (currentNode.left != 0)
+       dfs(getNode(book, currentNode.left), book);
+
+    if (currentNode.right != 0)
+       dfs(getNode(book, currentNode.right), book);
+  }
+
   function insertOrder(uint256 amount, OrderType orderType) public {
-    Order memory order = Order(msg.sender, amount);
+    // todo: require that enough money is deposited
+    Order memory order = Order(msg.sender, amount, orderType);
     OrderBookNode storage currentNode;
     OrderBook storage book;
 
@@ -81,28 +106,40 @@ contract InnoDEX is Ownable, SwotQueue, SwotOrderBook {
 
     if (isSameBucket(order.amount, pickFromQueue(currentNode.orders).amount)) {
       // todo: push into the root bucket queue
-      pushToQueue(currentNode.orders, order);
+      pushToQueue(currentNode.orders, order.amount, order.account, order.orderType);
+      Order storage o = pickFromQueue(currentNode.orders);
+      emit OrderCreated(o.account, o.amount, o.orderType);
     }
 
     while (true) {
       if (isSameBucket(order.amount, pickFromQueue(currentNode.orders).amount)) {
-        // push into this node bucket queue
-        pushToQueue(currentNode.orders, order);
+        pushToQueue(currentNode.orders, order.amount, order.account, order.orderType);
         break;
       }
 
       if (order.amount > pickFromQueue(currentNode.orders).amount) {
         // if the right node does not exist
         if (currentNode.right == 0) {
-          // OrderBookNode storage newNode;
-          // addRight(currentNode, );
+          currentNode = addRight(book, currentNode);
+        } else {
+          currentNode = getNode(book, currentNode.right);
         }
-
+        pushToQueue(currentNode.orders, order.amount, order.account, order.orderType);
+        break;
       } else {
-        // go to the left
-        currentNode = getNode(book, currentNode.left);
+        // if the left node does not exist 
+        if (currentNode.left == 0) {
+          currentNode = addLeft(book, currentNode);
+        } else {
+          currentNode = getNode(book, currentNode.left);
+        }
+        pushToQueue(currentNode.orders, order.amount, order.account, order.orderType);
+        break;
       }
     }
+
+    emit OrderInserted(msg.sender, block.timestamp, amount);
+    emit OrderInserted(msg.sender, block.timestamp, order.amount);
   }
   
   function executeOrder() internal {
