@@ -1,5 +1,6 @@
 <template>
   <div id="app">
+    <h5>My address: {{eth.userAddress}}</h5>
     <Chart :points="this.stocks"></Chart>
   </div>
 </template>
@@ -12,8 +13,44 @@ export default {
   components: {
     Chart
   },
-  data() {
+  mounted() {
+    // The provider
+    const provider = this.$ethereum;
+
+// Connect the provider
+    provider.connect();
+
+// ethereum info
+    const {
+      providerConnected,
+      providerName,
+      chainId,
+      chainName,
+      userAddress,
+    } = this.ethereumInfo;
+    console.log(providerConnected,
+        providerName,
+        chainId,
+        chainName,
+        userAddress,)
+    this.$data.eth = {
+      providerConnected: providerConnected,
+      providerName: providerName,
+      chainId: chainId,
+      chainName: chainName,
+      userAddress: userAddress
+    }
+  },
+  data: function () {
+
     return {
+      eth: {
+        providerConnected: false,
+      providerName: '',
+      chainId: '',
+      chainName: '',
+      userAddress: ''
+      },
       "stocks": [
         {
           price: 501,
