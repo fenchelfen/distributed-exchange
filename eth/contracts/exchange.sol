@@ -4,190 +4,173 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "./utils/SwotQueue.sol";
-import "./utils/SwotOrderBook.sol";
 
-contract InnoDEX is Ownable, SwotQueue, SwotOrderBook {
+contract InnoDEX is Ownable {
 
   using SafeMath for uint256;
 
   Token token;
+  Order[] bidOrders;
+  Order[] askOrders;
 
+  mapping(bytes32 => Order) orders;
   mapping(address => uint256) public tokenBalances;
-
-  constructor(ERC20 tokenContract) {
-    token.tokenContract = tokenContract;
-
-    pushToQueue(token.bidsOrderBook.root.orders, 1337, msg.sender, OrderType.Bid);
-    pushToQueue(token.asksOrderBook.root.orders, 0, msg.sender, OrderType.Ask);
-  }
-
-  uint public constant bucketStart = 100;
-  uint public constant bucketEnd = 999;
-  mapping(uint256 => uint256) buckets;
+  mapping(address => uint256) public etherBalances;
 
   struct Token {
-    ERC20 tokenContract;    
-    OrderBook bidsOrderBook;
-    OrderBook asksOrderBook;
-    uint256 currentSellPrice;
+          ERC20 tokenContract;
   }
 
-  function getTokenContract() public view returns (ERC20) {
-    return token.tokenContract;
-  }
- 
-  /* START OrderBookAPI */
-
-  function sayHello() public view returns (string memory) {
-    return "Hi There";
-  }
-  
-  function isSameBucket(uint256 a, uint256 b) public returns (bool) {
-    uint256 max;
-    uint256 min;
-
-    if (a == b) {
-      return true;
-    }
-
-    if (a > b) { max = a; min = b; }
-    else { max = b; min = a; }
-
-    // precision is up to 4 decimals
-    uint256 t = (max - min) / 10000;
-
-    // if integer part is 0, then two amounts are close enough to be in the same bucket
-    return (t == 0);
+  struct Order {
+          address account;
+          uint256 amount;
+          uint arrayIdx;
+          OrderType orderType;
+          Ticker ticker;
+          bool isValue; // used to verify that it's an initialized value 
   }
 
-  event OrderInserted(address indexed _initiator, uint _timestamp, uint _amount);
-  event OrderCreated(address indexed _initiator, uint _amount, OrderType _orderType);
-  event OrderFound(address indexed _initiator, uint _index, uint _amount, OrderType _orderType);
-  event FlagA();
-  event FlagB();
-  event FlagC();
-  event FlagD();
+  enum OrderType { Bid, Ask }
+  enum Ticker { ETH, SWOT }
 
-  function traverseTree(OrderType orderType) public {
-    OrderBook storage book;
-
-    if (orderType == OrderType.Bid) { book = token.bidsOrderBook; }
-    else { book = token.asksOrderBook; }
-
-    OrderBookNode storage currentNode = book.root;
-
-    dfs(currentNode, book);
+  constructor(ERC20 tokenContract) {
+          token.tokenContract = tokenContract;
   }
 
-  function dfs(OrderBookNode storage currentNode, OrderBook storage book) internal {
-    while(currentNode.orders.data.length > currentNode.orders.cursorPosition) {
-      Order storage o = popFromQueue(currentNode.orders);
-      emit OrderFound(o.account, currentNode.idx, o.amount, o.orderType);
-    }
 
-    if (currentNode.left != 0)
-       dfs(getNode(book, currentNode.left), book);
+  function depositToken(uint amount) public payable {
+          require(token.tokenContract.transferFrom(msg.sender, address(this), amount),
+                  'Failed to transfer tokens to SCA');
+          tokenBalances[msg.sender] = tokenBalances[msg.sender].add(amount);
 
-    if (currentNode.right != 0)
-       dfs(getNode(book, currentNode.right), book);
+          emit TokenDeposited(msg.sender, block.timestamp, token.tokenContract.symbol(), amount);
+  }
+  function depositEther() public payable {
+          etherBalances[msg.sender] = etherBalances[msg.sender].add(msg.value);
+
+          emit EtherDeposited(msg.sender, block.timestamp, token.tokenContract.symbol(), msg.value);
   }
 
-  function insertOrder(uint256 amount, OrderType orderType) public {
-    // todo: require that enough money is deposited
-    Order memory order = Order(msg.sender, amount, orderType);
-    OrderBookNode storage currentNode;
-    OrderBook storage book;
-
-    if (orderType == OrderType.Bid) { book = token.bidsOrderBook; }
-    else { book = token.asksOrderBook; }
-
-    currentNode = book.root;
-
-    if (isSameBucket(order.amount, pickFromQueue(currentNode.orders).amount)) {
-      // todo: push into the root bucket queue
-      pushToQueue(currentNode.orders, order.amount, order.account, order.orderType);
-      Order storage o = pickFromQueue(currentNode.orders);
-      emit OrderCreated(o.account, o.amount, o.orderType);
-    }
-
-    while (true) {
-      if (isSameBucket(order.amount, pickFromQueue(currentNode.orders).amount)) {
-        pushToQueue(currentNode.orders, order.amount, order.account, order.orderType);
-        break;
-      }
-
-      if (order.amount > pickFromQueue(currentNode.orders).amount) {
-        // if the right node does not exist
-        if (currentNode.right == 0) {
-          currentNode = addRight(book, currentNode);
-        } else {
-          currentNode = getNode(book, currentNode.right);
-        }
-        pushToQueue(currentNode.orders, order.amount, order.account, order.orderType);
-        break;
-      } else {
-        // if the left node does not exist 
-        if (currentNode.left == 0) {
-          currentNode = addLeft(book, currentNode);
-        } else {
-          currentNode = getNode(book, currentNode.left);
-        }
-        pushToQueue(currentNode.orders, order.amount, order.account, order.orderType);
-        break;
-      }
-    }
-
-    emit OrderInserted(msg.sender, block.timestamp, amount);
-    emit OrderInserted(msg.sender, block.timestamp, order.amount);
+  function tickerBidsExist(Ticker ticker) public view returns (bool) {
+          for (uint i = 1; i < bidOrders.length; i++) {
+                  if (bidOrders[i].ticker == ticker)
+                          return true;
+          }
+          return false;
   }
-  
-  function executeOrder() internal {
+  function tickerAsksExist(Ticker ticker) public view returns (bool) {
+          for (uint i = 1; i < askOrders.length; i++) {
+                  if (askOrders[i].ticker == ticker)
+                          return true;
+          }
+          return false;
   }
 
-  function cancelOrder() internal {
+  function getBestBid(Ticker ticker) public view returns (uint) {
+          uint maxBidIdx = 0;
+          for (uint i = 1; i < bidOrders.length; i++) {
+                  if (askOrders[i].ticker != ticker)
+                          continue;
+                  if (bidOrders[i].amount > bidOrders[maxBidIdx].amount)
+                          maxBidIdx = i;
+          }
+          return maxBidIdx;
+  }
+  function getBestAsk(Ticker ticker) public view returns (uint) {
+          uint minAskIdx = 0;
+          for (uint i = 1; i < askOrders.length; i++) {
+                  if (askOrders[i].ticker != ticker)
+                          continue;
+                  if (askOrders[i].amount > askOrders[minAskIdx].amount)
+                          minAskIdx = i;
+          }
+          return minAskIdx;
   }
 
-  function getBestBid() internal {
+  function placeBidOrder(uint256 amount, Ticker ticker) public {
+          Order memory o = Order(msg.sender, amount, bidOrders.length, OrderType.Bid, ticker, true);
+          bytes32 id = getOrderId(o);
+          orders[id] = o;
+          bidOrders.push(orders[id]);
   }
 
-  /* END   OrderBookAPI */
-
-  function placeBidLimitOrder() public {
+  function placeAskOrder(uint256 amount, Ticker ticker) public {
+          Order memory o = Order(msg.sender, amount, askOrders.length, OrderType.Ask, ticker, true);
+          bytes32 id = getOrderId(o);
+          orders[id] = o;
+          bidOrders.push(orders[id]);
   }
 
-  function placeAskLimitOrder() public {
+  function cancelBidOrder(uint256 amount, Ticker ticker) public {
+          bytes32 id = getOrderId(Order(msg.sender, amount, 0, OrderType.Bid, ticker, true));
+          Order storage o = orders[id];
+          removeOrder(o);
+  }
+  function cancelAskOrder(uint256 amount, Ticker ticker) public {
+          bytes32 id = getOrderId(Order(msg.sender, amount, 0, OrderType.Bid, ticker, true));
+          Order storage o = orders[id];
+          removeOrder(o);
+  }
+  function removeOrder(Order storage o) internal {
+          require(o.isValue, 'Such order does not exist');
+          if (OrderType.Bid == o.orderType) {
+                  delete bidOrders[o.arrayIdx];
+          } else {
+                  delete askOrders[o.arrayIdx];
+          }
+          delete orders[getOrderId(o)];
   }
 
-  function cancelLimitOrder() public {
+  function getOrderId(Order memory o) internal pure returns (bytes32) {
+          return keccak256(abi.encode(o.account, o.amount, o.orderType, o.ticker));
   }
 
-  function depositEther(uint amount) public payable {
-    require(token.tokenContract.transferFrom(msg.sender, address(this), amount), 'Failed to transfer tokens to SCA');
+  function matchOrders() internal {
+          uint bestETHBidIdx = getBestBid(Ticker.ETH);
+          uint bestETHAskIdx = getBestAsk(Ticker.ETH);
 
-    tokenBalances[msg.sender] = tokenBalances[msg.sender].add(amount);
+          uint bestSWOTBidIdx = getBestBid(Ticker.SWOT);
+          uint bestSWOTAskIdx = getBestAsk(Ticker.SWOT);
 
-    emit TokenDeposited(msg.sender, block.timestamp, token.tokenContract.symbol(), amount);
+          // todo: check that bids are close enough
+          if (!tickerBidsExist(Ticker.ETH) || !tickerAsksExist(Ticker.SWOT))
+                  return;
+
+          executeOrders(bidOrders[bestETHBidIdx], askOrders[bestETHAskIdx]);
+          executeOrders(bidOrders[bestSWOTBidIdx], askOrders[bestSWOTAskIdx]);
   }
- 
+  function executeOrders(Order storage bid, Order storage ask) internal {
+          require(bid.ticker == ask.ticker, 'Orders have different tickers');
+          Ticker ticker = bid.ticker;
 
-  /* START view functions */
+          if (Ticker.ETH == ticker) {
+                  // Bidder bought some SWOT for some ETH
+                  etherBalances[bid.account] -= bid.amount;
+                  tokenBalances[bid.account] += ask.amount;
+                  // Asker bought some ETH for some SWOT
+                  etherBalances[ask.account] += bid.amount;
+                  tokenBalances[ask.account] -= ask.amount;
+          }
+          if (Ticker.SWOT == ticker) {
+                  // Bidder bought some ETH for some SWOT
+                  etherBalances[bid.account] += bid.amount;
+                  tokenBalances[bid.account] -= ask.amount;
+                  // Asker bought some SWOT for some ETH
+                  etherBalances[ask.account] -= bid.amount;
+                  tokenBalances[ask.account] += ask.amount;
+          }
 
-  function getBucketAt(uint256 idx) public returns (uint256) {
-    return buckets[idx];
-  } 
+          emit OrderExecuted(bid.account, ask.account, ticker);
 
-  function getBid(uint256 bucket) public view returns (uint256) {
-    // Traverse the tree and find out how many orders are in this bucket 
-    return 77;
+          removeOrder(bid);
+          removeOrder(ask);
+          // ask.account.transfer(bid.amount);
+          // token.tokenContract.transferFrom(address(this), ask.account, amount);
   }
-
-  function getAsk(uint256 bucket) public view returns (uint256) {
-    return 128;
-  }
-
-  /* END   view functions */
 
   event TokenDeposited(address indexed _initiator, uint _timestamp, string _tokenSymbol, uint _amount);
+  event EtherDeposited(address indexed _initiator, uint _timestamp, string _tokenSymbol, uint _amount);
+
+  event OrderExecuted(address indexed bidder, address indexed asker, Ticker ticker);
 }
 
