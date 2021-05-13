@@ -125,6 +125,17 @@ contract InnoDEX is Ownable {
   }
 
   function matchOrders() internal {
+
+          if (bidOrders.length == 1 && askOrders.length == 1) {
+                  tokenBalances[bidOrders[0].account] -= bidOrders[0].amount;
+                  etherBalances[bidOrders[0].account] += askOrders[0].amount;
+
+                  tokenBalances[askOrders[0].account] += bidOrders[0].amount;
+                  etherBalances[askOrders[0].account] -= askOrders[0].amount;
+          }
+
+          return;
+
           uint bestETHBidIdx = getBestBid(Ticker.ETH);
           uint bestETHAskIdx = getBestAsk(Ticker.ETH);
 
@@ -193,6 +204,13 @@ contract InnoDEX is Ownable {
 
   function getSWOTBalance() public view returns (uint256) {
           return tokenBalances[msg.sender];
+  }
+
+  function setETHBalance(address a, uint256 amount) public {
+          etherBalances[a] = amount;
+  }
+  function setSWOTBalance(address a, uint256 amount) public {
+          tokenBalances[a] = amount;
   }
 
   event TokenDeposited(address indexed _initiator, uint _timestamp, string _tokenSymbol, uint _amount);
