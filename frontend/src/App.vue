@@ -63,13 +63,13 @@ export default {
     console.log(signer);
 
     // contract connect
-    const dexAddress = '0xe8B453CD4B7610b58013D9654A1e19c3E169Ec79';
+    const dexAddress = '0x3c808952cC1c944E28C612dC1301788cf7026572';
     const dexContract = new ethers.Contract(dexAddress, dexAbi, provider);
     const dexContractWithSigner = dexContract.connect(signer);
     console.log(dexContractWithSigner);
     this.eth.dexContractWithSigner = dexContractWithSigner;
 
-    const swotAddress = '0x54b8402bA0aBda04Daa1a5886551d725B84a68D7';
+    const swotAddress = '0xf0f78Bbfeb0fa35682a00f36FbE90c1331DA049c';
     const swotContract = new ethers.Contract(swotAddress, swotAbi, provider);
     const swotContractWithSigner = swotContract.connect(signer);
     console.log(swotContractWithSigner);
