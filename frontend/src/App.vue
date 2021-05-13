@@ -6,6 +6,7 @@
 </template>
 
 <script>
+/* eslint-disable */
 import Chart from './components/Chart.vue'
 
 export default {
@@ -40,6 +41,8 @@ export default {
       chainName: chainName,
       userAddress: userAddress
     }
+
+    this.getOwner();
   },
   data: function () {
 
@@ -73,6 +76,13 @@ export default {
           sell: false
         }
       ]
+    }
+  },
+  methods: {
+    getOwner(){
+      ethereum.request({ method: 'eth_accounts' }).then((data) => {
+        console.log(data);
+      }).catch()
     }
   }
 
