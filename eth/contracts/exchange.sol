@@ -37,7 +37,6 @@ contract InnoDEX is Ownable {
           token.tokenContract = tokenContract;
   }
 
-
   function depositToken(uint amount) public payable {
           require(token.tokenContract.transferFrom(msg.sender, address(this), amount),
                   'Failed to transfer tokens to SCA');
@@ -143,6 +142,9 @@ contract InnoDEX is Ownable {
           require(bid.ticker == ask.ticker, 'Orders have different tickers');
           Ticker ticker = bid.ticker;
 
+          if (!isSameBucket(bid.amount, ask.amount))
+                  return;
+
           if (Ticker.ETH == ticker) {
                   // Bidder bought some SWOT for some ETH
                   etherBalances[bid.account] -= bid.amount;
@@ -166,6 +168,31 @@ contract InnoDEX is Ownable {
           removeOrder(ask);
           // ask.account.transfer(bid.amount);
           // token.tokenContract.transferFrom(address(this), ask.account, amount);
+  }
+  function isSameBucket(uint256 a, uint256 b) public pure returns (bool) {
+    uint256 max;
+    uint256 min;
+
+    if (a == b) {
+      return true;
+    }
+
+    if (a > b) { max = a; min = b; }
+    else { max = b; min = a; }
+
+    // precision is up to 4 decimals
+    uint256 t = (max - min) / 100;
+
+    // if integer part is 0, then two amounts are close enough to be in the same bucket
+    return (t == 0);
+  }
+
+  function getETHBalance() public view returns (uint256) {
+          return etherBalances[msg.sender];
+  }
+
+  function getSWOTBalance() public view returns (uint256) {
+          return tokenBalances[msg.sender];
   }
 
   event TokenDeposited(address indexed _initiator, uint _timestamp, string _tokenSymbol, uint _amount);
