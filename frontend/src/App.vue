@@ -9,9 +9,9 @@
       <button v-on:click="putETHOnInnoDex">put ETH on InnoDEX</button>
     </div>
     <div>
-      <label for="swot">amount of SWOT to but</label>
+      <label for="swot">limit order for SWOT in ETH</label>
       <input id="swot" name="swot" v-model="buy_swot.amount">
-      <button v-on:click="buySWOTOnInnoDex">get SWOT on InnoDEX</button>
+      <button v-on:click="buySWOTOnInnoDex">get SWOT</button>
     </div>
     <div>
       <button v-on:click="updateInnoDexBalance">update balances</button>
@@ -27,6 +27,11 @@
 import Chart from './components/Chart.vue'
 import {dexAbi} from "./dex-abi";
 import {ethers} from "ethers";
+import {swotAbi} from "./swot-abi";
+
+const ETH = 1;
+const SWOT = 0;
+
 
 export default {
   name: 'App',
@@ -58,27 +63,28 @@ export default {
     console.log(signer);
 
     // contract connect
-    const address = '0x18b06f4f00197ccc872d909801f28d17493ed889';
-    const dexContract = new ethers.Contract(address, dexAbi, provider);
+    const dexAddress = '0x2c0ecdb8c48db80da0763ebd844c2b69906077ee';
+    const dexContract = new ethers.Contract(dexAddress, dexAbi, provider);
     const dexContractWithSigner = dexContract.connect(signer);
     console.log(dexContractWithSigner);
     this.eth.dexContractWithSigner = dexContractWithSigner;
 
+    const swotAddress = '0x30e153A171E930CAe151d5FD121021D77d003577\n';
+    const swotContract = new ethers.Contract(swotAddress, swotAbi, provider);
+    const swotContractWithSigner = swotContract.connect(signer);
+    console.log(swotContractWithSigner);
+    this.eth.swotContractWithSigner = swotContractWithSigner;
+
     this.updateInnoDexBalance();
 
-
-    // var contract = new Contract(dexAbi, address);
-    // console.log(contract);
-    // let res = contract.methods.depositEther().call();
-    // console.log("res", res);
   },
   data: function () {
 
     return {
-      buy_eth:{
+      buy_eth: {
         amount: 0
       },
-      buy_swot:{
+      buy_swot: {
         amount: 0
       },
       eth: {
@@ -90,6 +96,7 @@ export default {
         chainName: '',
         userAddress: '',
         dexContractWithSigner: null,
+        swotContractWithSigner: null
       },
       "stocks": [
         {
@@ -144,8 +151,11 @@ export default {
         console.log("then", el)
       }));
     },
-    buySWOTOnInnoDex(){
+    buySWOTOnInnoDex() {
 
+      this.$data.eth.dexContractWithSigner.placeAskOrder(this.buy_swot.amount, ETH).then((res) => {
+        console.log("buy", res)
+      })
     }
   }
 
