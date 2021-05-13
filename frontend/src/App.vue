@@ -55,7 +55,7 @@ export default {
         userAddress,)
     this.$data.eth.userAddress = userAddress
 
-    this.getOwner();
+    // this.getOwner();
 
 
     const provider = new ethers.providers.Web3Provider(window.ethereum)
@@ -63,13 +63,13 @@ export default {
     console.log(signer);
 
     // contract connect
-    const dexAddress = '0x2c0ecdb8c48db80da0763ebd844c2b69906077ee';
+    const dexAddress = '0xe8B453CD4B7610b58013D9654A1e19c3E169Ec79';
     const dexContract = new ethers.Contract(dexAddress, dexAbi, provider);
     const dexContractWithSigner = dexContract.connect(signer);
     console.log(dexContractWithSigner);
     this.eth.dexContractWithSigner = dexContractWithSigner;
 
-    const swotAddress = '0x30e153A171E930CAe151d5FD121021D77d003577\n';
+    const swotAddress = '0x54b8402bA0aBda04Daa1a5886551d725B84a68D7';
     const swotContract = new ethers.Contract(swotAddress, swotAbi, provider);
     const swotContractWithSigner = swotContract.connect(signer);
     console.log(swotContractWithSigner);
